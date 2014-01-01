@@ -100,6 +100,11 @@ public interface Library {
      * conflict.
      */
     String OPTION_CLASSLOADER = "classloader";
+    
+    /**
+     * preserve the original DLL filename.
+     */
+    String OPTION_PRESERVE_FILE_NAME = "preserve-filename";
 
     static class Handler implements InvocationHandler {
         

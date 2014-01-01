@@ -797,6 +797,95 @@ public final class Native implements Version {
         return extractFromResourcePath(name, null);
     }
 
+    public static File extractFromResourcePath(String name, ClassLoader loader, boolean preserveFileName) throws IOException {
+	final boolean DEBUG = DEBUG_LOAD
+	            || (DEBUG_JNA_LOAD && name.indexOf("jnidispatch") != -1);
+        if (loader == null) {
+            loader = Thread.currentThread().getContextClassLoader();
+            // Context class loader is not guaranteed to be set
+            if (loader == null) {
+                loader = Native.class.getClassLoader();
+            }
+        }
+        if (DEBUG) {
+            System.out.println("Looking in classpath from " + loader + " for " + name);
+        }
+        String libname = name.startsWith("/") ? name : NativeLibrary.mapSharedLibraryName(name);
+        String resourcePath = name.startsWith("/") ? name : Platform.RESOURCE_PREFIX + "/" + libname;
+        if (resourcePath.startsWith("/")) {
+            resourcePath = resourcePath.substring(1);
+        }
+        URL url = loader.getResource(resourcePath);
+        if (url == null && resourcePath.startsWith(Platform.RESOURCE_PREFIX)) {
+            // If not found with the standard resource prefix, try without it
+            url = loader.getResource(libname);
+        }
+        if (url == null) {
+            String path = System.getProperty("java.class.path");
+            if (loader instanceof URLClassLoader) {
+                path = Arrays.asList(((URLClassLoader)loader).getURLs()).toString();
+            }
+            throw new IOException("Native library (" + resourcePath + ") not found in resource path (" + path + ")");
+        }
+        if (DEBUG) {
+            System.out.println("Found library resource at " + url);
+        }
+        
+        File lib = null;
+        if (url.getProtocol().toLowerCase().equals("file")) {
+            try {
+                lib = new File(new URI(url.toString()));
+            }
+            catch(URISyntaxException e) {
+                lib = new File(url.getPath());
+            }
+            if (DEBUG) {
+        	System.out.println("Looking in " + lib.getAbsolutePath());
+            }
+            if (!lib.exists()) {
+                throw new IOException("File URL " + url + " could not be properly decoded");
+            }
+        }
+        else if (!Boolean.getBoolean("jna.nounpack")) {
+            InputStream is = loader.getResourceAsStream(resourcePath);
+            if (is == null) {
+                throw new IOException("Can't obtain InputStream for " + resourcePath);
+            }
+        
+            FileOutputStream fos = null;
+            try {
+                // Suffix is required on windows, or library fails to load
+                // Let Java pick the suffix, except on windows, to avoid
+                // problems with Web Start.
+                File dir = getTempDir();
+                if (preserveFileName){
+                    lib = new File(dir, name + (Platform.isWindows()?".dll":"") );
+                }else{
+                    lib = File.createTempFile(JNA_TMPLIB_PREFIX, Platform.isWindows()?".dll":null, dir);
+                }
+                if (!Boolean.getBoolean("jnidispatch.preserve")) {
+                    lib.deleteOnExit();
+                }
+                fos = new FileOutputStream(lib);
+                int count;
+                byte[] buf = new byte[1024];
+                while ((count = is.read(buf, 0, buf.length)) > 0) {
+                    fos.write(buf, 0, count);
+                }
+            }
+            catch(IOException e) {
+                throw new IOException("Failed to create temporary file for " + name + " library: " + e.getMessage());
+            }
+            finally {
+                try { is.close(); } catch(IOException e) { }
+                if (fos != null) {
+                    try { fos.close(); } catch(IOException e) { }
+                }
+            }
+        }
+        return lib;
+    }
+    
     /** Attempt to extract a native library from the resource path using the
      * given class loader.  
      * @param name Base name of native library to extract.  May also be an

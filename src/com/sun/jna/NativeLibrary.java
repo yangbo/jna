@@ -116,6 +116,8 @@ public class NativeLibrary {
     }
 
     private static final int DEFAULT_OPEN_OPTIONS = -1;
+    private static final boolean DEFAULT_PRESERVE_FILENAME_OPTIONS = false;
+    
     private static int openFlags(Map options) {
         Object opt = options.get(Library.OPTION_OPEN_FLAGS);
         if (opt instanceof Number) {
@@ -124,6 +126,14 @@ public class NativeLibrary {
         return DEFAULT_OPEN_OPTIONS;
     }
 
+    private static boolean preserveFileName(Map options){
+        Object opt = options.get(Library.OPTION_PRESERVE_FILE_NAME);
+        if (opt instanceof Boolean) {
+            return ((Boolean)opt);
+        }
+        return DEFAULT_PRESERVE_FILENAME_OPTIONS;
+    }
+    
     private static NativeLibrary loadLibrary(String libraryName, Map options) {
 	if (Native.DEBUG_LOAD) {
 	    System.out.println("Looking for library '" + libraryName + "'");
@@ -132,6 +142,7 @@ public class NativeLibrary {
         boolean isAbsolutePath = new File(libraryName).isAbsolute();
         List searchPath = new LinkedList();
         int openFlags = openFlags(options);
+        boolean preserveFileNameFlags = preserveFileName(options);
 
         // Append web start path, if available.  Note that this does not
         // attempt any library name variations
@@ -256,7 +267,7 @@ public class NativeLibrary {
             // path, using the current context class loader.
             if (handle == 0) {
                 try {
-                    File embedded = Native.extractFromResourcePath(libraryName, (ClassLoader)options.get(Library.OPTION_CLASSLOADER));
+                    File embedded = Native.extractFromResourcePath(libraryName, (ClassLoader)options.get(Library.OPTION_CLASSLOADER), preserveFileNameFlags);
                     handle = Native.open(embedded.getAbsolutePath());
                     libraryPath = embedded.getAbsolutePath();
                     // Don't leave temporary files around
