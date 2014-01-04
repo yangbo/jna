@@ -19,3 +19,6 @@ dist/out-of-date.jar
 perf*.txt
 native/libffi/doc/libffi.info
 junit-*
+.settings
+.project
+.classpath

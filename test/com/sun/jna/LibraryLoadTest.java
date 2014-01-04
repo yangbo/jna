@@ -61,7 +61,17 @@ public class LibraryLoadTest extends TestCase implements Paths {
     
     public void testExtractFromResourcePath() throws Exception {
         // doesn't actually load the resource
-        assertNotNull(Native.extractFromResourcePath("testlib-path", new TestLoader(new File(TESTPATH))));
+	File res = Native.extractFromResourcePath("testlib-path", new TestLoader(new File(TESTPATH)));
+	System.out.println("========> RES extracted: " + res.getAbsolutePath());
+        assertNotNull(res);
+    }
+
+    public void testExtractFromResourcePathPreserveFileName() throws Exception {
+        boolean preserveFileName = true;
+	// doesn't actually load the resource
+        File res = Native.extractFromResourcePath("testlib-path", new TestLoader(new File(TESTPATH)), preserveFileName);
+        System.out.println("========> Preserve file name RES extracted: " + res.getAbsolutePath());
+        assertNotNull(res);
     }
 
     public void testExtractFromResourcePathWithNullClassLoader() throws Exception {
