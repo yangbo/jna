@@ -866,11 +866,13 @@ public final class Native implements Version {
                 if (!Boolean.getBoolean("jnidispatch.preserve")) {
                     lib.deleteOnExit();
                 }
-                fos = new FileOutputStream(lib);
-                int count;
-                byte[] buf = new byte[1024];
-                while ((count = is.read(buf, 0, buf.length)) > 0) {
-                    fos.write(buf, 0, count);
+                if (!lib.exists()){
+                    fos = new FileOutputStream(lib);
+                    int count;
+                    byte[] buf = new byte[1024];
+                    while ((count = is.read(buf, 0, buf.length)) > 0) {
+                	fos.write(buf, 0, count);
+                    }
                 }
             }
             catch(IOException e) {
